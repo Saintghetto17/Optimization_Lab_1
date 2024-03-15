@@ -9,6 +9,7 @@ from scipy import optimize
 from sympy.abc import x, y
 import enum
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 class FUNCTION(enum.Enum):
@@ -157,7 +158,7 @@ def fill_data(col_names: list[str],
                     RESULTS[func].append(buffer[:2])
                     if exp_cnt in numbers_to_display:
                         l, = ax_fig.plot(buffer[2][0], buffer[2][1], buffer[2][2], '-')
-                        ax.scatter(buffer[2][0], buffer[2][1], buffer[2][2])
+                        ax_fig.scatter(buffer[2][0], buffer[2][1], buffer[2][2])
                         legend_data[0].append(l)
                         legend_data[1].append(experiment_name + " " + str(exp_cnt))
                 except OverflowError:
@@ -201,8 +202,37 @@ def show_result(cols: list[str], tables: list[PrettyTable], datas: list[list[typ
         print()
 
 
-fig = plt.figure()
-ax = fig.add_subplot(projection='3d')
+figure_method_steps = plt.figure()
+ax_fms = figure_method_steps.add_subplot(projection='3d')
+
+
+def function_surf_calc1(x_cord, y_cord):
+    return x_cord ** 2 + (2 * x_cord - 4 * y_cord) ** 2 + (x_cord - 5) ** 2
+
+
+def function_surf_calc2(x_cord, y_cord):
+    return x_cord ** 2 + y_cord ** 2 - x_cord * y_cord + 2 * x_cord - 4 * y_cord + 3
+
+
+x = y = np.arange(-3, 3, 0.05)
+X, Y = np.meshgrid(x, y)
+Z1 = np.array(function_surf_calc1(np.ravel(X), np.ravel(Y))).reshape(X.shape)
+Z2 = np.array(function_surf_calc2(np.ravel(X), np.ravel(Y))).reshape(X.shape)
+
+figure = plt.figure(figsize=(14, 10))
+
+ax1 = figure.add_subplot(2, 2, 1, projection='3d')
+ax1.plot_surface(X, Y, Z1)
+ax2 = figure.add_subplot(2, 2, 2)
+cs1 = ax2.contour(X, Y, Z1, level=20)
+cs1.clabel()
+
+ax3 = figure.add_subplot(2, 2, 3, projection='3d')
+ax3.plot_surface(X, Y, Z2)
+ax4 = figure.add_subplot(2, 2, 4)
+cs2 = ax4.contour(X, Y, Z2, level=20)
+cs2.clabel()
+
 # TABLE FOR LEARNING RATE METHOD
 print("################################################# LEARNING RATE ###############################################")
 column_names_learning_rate: list[str] = ['№', 'FUNCTION', 'GLOBAL_MIN', 'INIT_POINT', 'ITERATIONS', 'EPS',
@@ -212,7 +242,7 @@ column_names_learning_rate: list[str] = ['№', 'FUNCTION', 'GLOBAL_MIN', 'INIT_
 tables_learning_rate: list[PrettyTable] = []
 datas_learning_rate: list[list[typing.Any]] = []
 fill_data(column_names_learning_rate, tables_learning_rate, datas_learning_rate, GRADIENT_REGIME.CONSTANT_STEP, [7, 9],
-          ax, "LEARNING RATE METHOD")
+          ax_fms, "LEARNING RATE METHOD")
 show_result(column_names_learning_rate, tables_learning_rate, datas_learning_rate)
 
 # TABLE FOR TERNARY RATE METHOD
@@ -223,7 +253,7 @@ column_names_ternary_rate: list[str] = ['№', 'FUNCTION', 'GLOBAL_MIN', 'INIT_P
 tables_ternary_rate: list[PrettyTable] = []
 datas_ternary_rate: list[list[typing.Any]] = []
 fill_data(column_names_ternary_rate, tables_ternary_rate, datas_ternary_rate, GRADIENT_REGIME.CHANGING_STEP, [1, 5, 17],
-          ax, "TERNARY RATE METHOD")
+          ax_fms, "TERNARY RATE METHOD")
 show_result(column_names_ternary_rate, tables_ternary_rate, datas_ternary_rate)
 
 print("################################################# NELDER-MID ##################################################")
@@ -245,5 +275,5 @@ for i in range(2):
         datas_nelder_mead[i].append(res.fun)
 show_result(column_names_nelder_mead, tables_nelder_mead, datas_nelder_mead)
 
-plt.legend(legend_data[0], legend_data[1], loc='upper right', shadow=True)
+figure_method_steps.legend(legend_data[0], legend_data[1], loc='upper right', shadow=True)
 plt.show()
