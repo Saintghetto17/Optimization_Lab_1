@@ -138,40 +138,28 @@ def fill_data(col_names: list[str],
             for j in range(len(EPS)):
                 learning_rate = LEARNING_RATES[j]
                 try:
+                    buffer: tuple[float, int, [list[float], list[float], list[float]]] = ()
                     if regime == GRADIENT_REGIME.CONSTANT_STEP:
                         if j == 2:
                             buffer = (gradient_descent(INIT_POINTS[i], True,
                                                        False, EPS[j], function[func],
                                                        GRADIENT_REGIME.CONSTANT_STEP,
                                                        learning_rate=learning_rate))
-                            RESULTS[func].append(buffer[:2])
-                            if exp_cnt in numbers_to_display:
-                                l, = ax_fig.plot(buffer[2][0], buffer[2][1], buffer[2][2], '-')
-                                ax.scatter(buffer[2][0], buffer[2][1], buffer[2][2])
-                                legend_data[0].append(l)
-                                legend_data[1].append(experiment_name + " " + str(exp_cnt))
                         else:
                             buffer = gradient_descent(INIT_POINTS[i], False,
                                                       True, EPS[j], function[func],
                                                       GRADIENT_REGIME.CONSTANT_STEP,
                                                       learning_rate=learning_rate)
-                            RESULTS[func].append(buffer[:2])
-                            if exp_cnt in numbers_to_display:
-                                l, = ax_fig.plot(buffer[2][0], buffer[2][1], buffer[2][2], '-')
-                                ax.scatter(buffer[2][0], buffer[2][1], buffer[2][2])
-                                legend_data[0].append(l)
-                                legend_data[1].append(experiment_name + " " + str(exp_cnt))
                     elif regime == GRADIENT_REGIME.CHANGING_STEP:
                         buffer = gradient_descent(INIT_POINTS[i], False,
                                                   True, EPS[j], function[func],
                                                   GRADIENT_REGIME.CHANGING_STEP, learning_rate=None)
-                        RESULTS[func].append(buffer[:2])
-                        if exp_cnt in numbers_to_display:
-                            l, = ax_fig.plot(buffer[2][0], buffer[2][1], buffer[2][2], '-')
-                            ax.scatter(buffer[2][0], buffer[2][1], buffer[2][2])
-                            legend_data[0].append(l)
-                            legend_data[1].append(experiment_name + " " + str(exp_cnt))
-
+                    RESULTS[func].append(buffer[:2])
+                    if exp_cnt in numbers_to_display:
+                        l, = ax_fig.plot(buffer[2][0], buffer[2][1], buffer[2][2], '-')
+                        ax.scatter(buffer[2][0], buffer[2][1], buffer[2][2])
+                        legend_data[0].append(l)
+                        legend_data[1].append(experiment_name + " " + str(exp_cnt))
                 except OverflowError:
                     RESULTS[func].append((None, None))
                 exp_cnt += 1
@@ -224,7 +212,7 @@ column_names_learning_rate: list[str] = ['№', 'FUNCTION', 'GLOBAL_MIN', 'INIT_
 tables_learning_rate: list[PrettyTable] = []
 datas_learning_rate: list[list[typing.Any]] = []
 fill_data(column_names_learning_rate, tables_learning_rate, datas_learning_rate, GRADIENT_REGIME.CONSTANT_STEP, [7, 9],
-         ax, "LEARNING RATE METHOD")
+          ax, "LEARNING RATE METHOD")
 show_result(column_names_learning_rate, tables_learning_rate, datas_learning_rate)
 
 # TABLE FOR TERNARY RATE METHOD
@@ -235,7 +223,7 @@ column_names_ternary_rate: list[str] = ['№', 'FUNCTION', 'GLOBAL_MIN', 'INIT_P
 tables_ternary_rate: list[PrettyTable] = []
 datas_ternary_rate: list[list[typing.Any]] = []
 fill_data(column_names_ternary_rate, tables_ternary_rate, datas_ternary_rate, GRADIENT_REGIME.CHANGING_STEP, [1, 5, 17],
-        ax, "TERNARY RATE METHOD")
+          ax, "TERNARY RATE METHOD")
 show_result(column_names_ternary_rate, tables_ternary_rate, datas_ternary_rate)
 
 print("################################################# NELDER-MID ##################################################")
@@ -257,5 +245,5 @@ for i in range(2):
         datas_nelder_mead[i].append(res.fun)
 show_result(column_names_nelder_mead, tables_nelder_mead, datas_nelder_mead)
 
-plt.legend(legend_data[0], legend_data[1],  loc='upper right', shadow=True)
+plt.legend(legend_data[0], legend_data[1], loc='upper right', shadow=True)
 plt.show()
