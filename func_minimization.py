@@ -1,5 +1,3 @@
-# x^2 + (2x-4y)^2 + (x-5)^2
-# global_minimum = 25/2; (x, y) = (5/2, 5/4)
 import math
 import typing
 
@@ -11,6 +9,10 @@ import enum
 import matplotlib.pyplot as plt
 import numpy as np
 
+import warnings
+
+warnings.filterwarnings("ignore")
+
 
 class FUNCTION(enum.Enum):
     FUNC_1 = x ** 2 + (2 * x - 4 * y) ** 2 + (x - 5) ** 2
@@ -19,7 +21,14 @@ class FUNCTION(enum.Enum):
 
 class GRADIENT_REGIME(enum.Enum):
     CONSTANT_STEP = 0
-    CHANGING_STEP = 1
+    CHANGING_STEP_TERNARY = 1
+    CHANGING_STEP_DICHOTOMY = 2
+
+
+class GRADIENT_NAME(enum.Enum):
+    LEARNING_RATE = "LEARNING RATE METHOD"
+    CHANGING_RATE_TERNARY = "TERNARY RATE METHOD"
+    CHANGING_RATE_DICHOTOMY = "DICHOTOMY RATE METHOD"
 
 
 function: list[FUNCTION] = [FUNCTION.FUNC_1, FUNCTION.FUNC_2]
@@ -62,6 +71,22 @@ def ternary_search_min(func: typing.Callable[[tuple[float, float]], float],
         return ternary_search_min(func, a, right, grad, dot)
 
 
+def dichotomy_search_min(func: typing.Callable[[tuple[float]], float], left: float, right: float,
+                         grad: tuple[float, float],
+                         dot: tuple[float, float]) -> float:
+    if right - left < EPS_SEARCH:
+        return (left + right) / 2
+    median: float = (left + right) / 2
+    a_dot: tuple[float, float] = (dot[0] - (median - EPS_SEARCH) * grad[0], dot[1] - (median - EPS_SEARCH) * grad[1])
+    b_dot: tuple[float, float] = (dot[0] - (median + EPS_SEARCH) * grad[0], dot[1] - (median + EPS_SEARCH) * grad[1])
+    func_val_1 = func(a_dot)
+    func_val_2 = func(b_dot)
+    if func_val_1 < func_val_2:
+        return dichotomy_search_min(func, left, median, grad, dot)
+    else:
+        return dichotomy_search_min(func, median, right, grad, dot)
+
+
 def next_step(prev_dot: tuple[float, float],
               gradient_vector: tuple[float, float],
               regime: GRADIENT_REGIME,
@@ -69,9 +94,13 @@ def next_step(prev_dot: tuple[float, float],
               learning_rate: float | None = None) -> tuple[float, float]:
     if regime == GRADIENT_REGIME.CONSTANT_STEP:
         return prev_dot[0] - learning_rate * gradient_vector[0], prev_dot[1] - learning_rate * gradient_vector[1]
-    elif regime == GRADIENT_REGIME.CHANGING_STEP:
+    elif regime == GRADIENT_REGIME.CHANGING_STEP_TERNARY:
         step: float = ternary_search_min(lambda xy: function_value(xy, func), left_board, right_board,
                                          gradient_vector, prev_dot)
+        return prev_dot[0] - step * gradient_vector[0], prev_dot[1] - step * gradient_vector[1]
+    elif regime == GRADIENT_REGIME.CHANGING_STEP_DICHOTOMY:
+        step: float = dichotomy_search_min(lambda xy: function_value(xy, func), left_board, right_board,
+                                           gradient_vector, prev_dot)
         return prev_dot[0] - step * gradient_vector[0], prev_dot[1] - step * gradient_vector[1]
 
 
@@ -127,10 +156,9 @@ legend_data = [[], []]
 def fill_data(col_names: list[str],
               tables: list[PrettyTable],
               datas: list[list[typing.Any]],
-              regime: GRADIENT_REGIME,
-              numbers_to_display: list[int],
               ax_fig: Axes,
-              experiment_name) -> None:
+              gradient_name: GRADIENT_NAME, regime: GRADIENT_REGIME,
+              numbers_to_display: list[int]) -> None:
     RESULTS = []
     exp_cnt = 0
     for func in range(2):
@@ -151,16 +179,19 @@ def fill_data(col_names: list[str],
                                                       True, EPS[j], function[func],
                                                       GRADIENT_REGIME.CONSTANT_STEP,
                                                       learning_rate=learning_rate)
-                    elif regime == GRADIENT_REGIME.CHANGING_STEP:
+                    elif regime == GRADIENT_REGIME.CHANGING_STEP_TERNARY:
                         buffer = gradient_descent(INIT_POINTS[i], False,
                                                   True, EPS[j], function[func],
-                                                  GRADIENT_REGIME.CHANGING_STEP, learning_rate=None)
+                                                  GRADIENT_REGIME.CHANGING_STEP_TERNARY, learning_rate=None)
+                    elif regime == GRADIENT_REGIME.CHANGING_STEP_DICHOTOMY:
+                        buffer = gradient_descent(INIT_POINTS[i], False, True, EPS[j], function[func],
+                                                  GRADIENT_REGIME.CHANGING_STEP_DICHOTOMY, learning_rate=None)
                     RESULTS[func].append(buffer[:2])
                     if exp_cnt in numbers_to_display:
                         l, = ax_fig.plot(buffer[2][0], buffer[2][1], buffer[2][2], '-')
                         ax_fig.scatter(buffer[2][0], buffer[2][1], buffer[2][2])
                         legend_data[0].append(l)
-                        legend_data[1].append(experiment_name + " " + str(exp_cnt))
+                        legend_data[1].append(gradient_name.value + " " + str(exp_cnt))
                 except OverflowError:
                     RESULTS[func].append((None, None))
                 exp_cnt += 1
@@ -179,6 +210,10 @@ def fill_data(col_names: list[str],
                 datas[func].append(EPS[j])
                 if regime == GRADIENT_REGIME.CONSTANT_STEP:
                     datas[func].append(LEARNING_RATES[j])
+                elif gradient_name == GRADIENT_NAME.CHANGING_RATE_TERNARY:
+                    datas[func].append(GRADIENT_NAME.CHANGING_RATE_TERNARY.value)
+                elif gradient_name == GRADIENT_NAME.CHANGING_RATE_DICHOTOMY:
+                    datas[func].append(GRADIENT_NAME.CHANGING_RATE_DICHOTOMY.value)
                 datas[func].append(RESULTS[func][j + NUMBER_OF_POINTS * i][0])
                 if regime == GRADIENT_REGIME.CONSTANT_STEP:
                     if j == NUMBER_OF_POINTS - 1:
@@ -205,19 +240,12 @@ def show_result(cols: list[str], tables: list[PrettyTable], datas: list[list[typ
 figure_method_steps = plt.figure()
 ax_fms = figure_method_steps.add_subplot(projection='3d')
 
-
-def function_surf_calc1(x_cord, y_cord):
-    return x_cord ** 2 + (2 * x_cord - 4 * y_cord) ** 2 + (x_cord - 5) ** 2
-
-
-def function_surf_calc2(x_cord, y_cord):
-    return x_cord ** 2 + y_cord ** 2 - x_cord * y_cord + 2 * x_cord - 4 * y_cord + 3
-
+# VISUALIZATION OF OUR GRAPHICS
 
 x = y = np.arange(-3, 3, 0.05)
 X, Y = np.meshgrid(x, y)
-Z1 = np.array(function_surf_calc1(np.ravel(X), np.ravel(Y))).reshape(X.shape)
-Z2 = np.array(function_surf_calc2(np.ravel(X), np.ravel(Y))).reshape(X.shape)
+Z1 = np.array(function_value((np.ravel(X), np.ravel(Y)), FUNCTION.FUNC_1)).reshape(X.shape)
+Z2 = np.array(function_value((np.ravel(X), np.ravel(Y)), FUNCTION.FUNC_2)).reshape(X.shape)
 
 figure = plt.figure(figsize=(14, 10))
 
@@ -241,22 +269,26 @@ column_names_learning_rate: list[str] = ['№', 'FUNCTION', 'GLOBAL_MIN', 'INIT_
                                          'BY_FUNC']
 tables_learning_rate: list[PrettyTable] = []
 datas_learning_rate: list[list[typing.Any]] = []
-fill_data(column_names_learning_rate, tables_learning_rate, datas_learning_rate, GRADIENT_REGIME.CONSTANT_STEP, [7, 9],
-          ax_fms, "LEARNING RATE METHOD")
+fill_data(column_names_learning_rate, tables_learning_rate, datas_learning_rate,
+          ax_fms, GRADIENT_NAME.LEARNING_RATE, GRADIENT_REGIME.CONSTANT_STEP, [7, 9])
 show_result(column_names_learning_rate, tables_learning_rate, datas_learning_rate)
 
 # TABLE FOR TERNARY RATE METHOD
 
-print("################################################# CHANGING STEP ###############################################")
+print(
+    "################################################# CHANGING STEP TERNARY ###############################################")
 column_names_ternary_rate: list[str] = ['№', 'FUNCTION', 'GLOBAL_MIN', 'INIT_POINT', 'ITERATIONS', 'EPS',
+                                        'CHANGING STEP',
                                         'VALUE']
 tables_ternary_rate: list[PrettyTable] = []
 datas_ternary_rate: list[list[typing.Any]] = []
-fill_data(column_names_ternary_rate, tables_ternary_rate, datas_ternary_rate, GRADIENT_REGIME.CHANGING_STEP, [1, 5, 17],
-          ax_fms, "TERNARY RATE METHOD")
+fill_data(column_names_ternary_rate, tables_ternary_rate, datas_ternary_rate,
+          ax_fms, GRADIENT_NAME.CHANGING_RATE_TERNARY, GRADIENT_REGIME.CHANGING_STEP_TERNARY, [1, 5, 17])
 show_result(column_names_ternary_rate, tables_ternary_rate, datas_ternary_rate)
 
-print("################################################# NELDER-MID ##################################################")
+# TABLE FOR NELDER-MEAD:
+print(
+    "################################################# NELDER-MEAD ##################################################")
 column_names_nelder_mead: list[str] = ['FUNCTION', 'GLOBAL_MIN', 'INIT_POINT', 'ITERATIONS',
                                        'VALUE']
 tables_nelder_mead: list[PrettyTable] = []
@@ -274,6 +306,19 @@ for i in range(2):
         datas_nelder_mead[i].append(res.nit)
         datas_nelder_mead[i].append(res.fun)
 show_result(column_names_nelder_mead, tables_nelder_mead, datas_nelder_mead)
+
+# TABLE FOR DICHOTOMY : BONUS
+print(
+    "################################################# BONUS: DICHOTOMY ##############################################")
+
+column_names_dichotomy_rate: list[str] = ['№', 'FUNCTION', 'GLOBAL_MIN', 'INIT_POINT', 'ITERATIONS', 'EPS',
+                                          'CHANGING STEP',
+                                          'VALUE']
+tables_dichotomy_rate: list[PrettyTable] = []
+datas_dichotomy_rate: list[list[typing.Any]] = []
+fill_data(column_names_dichotomy_rate, tables_dichotomy_rate, datas_dichotomy_rate,
+          ax_fms, GRADIENT_NAME.CHANGING_RATE_DICHOTOMY, GRADIENT_REGIME.CHANGING_STEP_DICHOTOMY, [2, 12, 15])
+show_result(column_names_dichotomy_rate, tables_dichotomy_rate, datas_dichotomy_rate)
 
 figure_method_steps.legend(legend_data[0], legend_data[1], loc='upper right', shadow=True)
 plt.show()
