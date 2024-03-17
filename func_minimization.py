@@ -36,6 +36,12 @@ GLOBAL_MIN: list[float] = [25 / 2, -1]
 
 
 def function_value(dot: tuple[float, float], func: FUNCTION) -> float:
+    """
+    Calculates the value of the function at dot : R^2 -> R
+    :param dot: Dot at which to evaluate the value
+    :param func: Function to evaluate the value
+    :return: the value in dot
+    """
     if func == FUNCTION.FUNC_1:
         return dot[0] ** 2 + (2 * dot[0] - 4 * dot[1]) ** 2 + (dot[0] - 5) ** 2
     elif func == FUNCTION.FUNC_2:
@@ -43,6 +49,12 @@ def function_value(dot: tuple[float, float], func: FUNCTION) -> float:
 
 
 def gradient(dot: tuple[float, float], func: FUNCTION) -> tuple[float, float]:
+    """
+    Calculates gradient of function : R^2 -> R
+    :param dot: Dot at which to compute the gradient
+    :param func: Function for which to compute the gradient : R^2 -> R
+    :return: Calculated gradient
+    """
     if func == FUNCTION.FUNC_1:
         return 2 * (6 * dot[0] - 8 * dot[1] - 5), -16 * (dot[0] - 2 * dot[1])
     elif func == FUNCTION.FUNC_2:
@@ -59,6 +71,15 @@ def ternary_search_min(func: typing.Callable[[tuple[float, float]], float],
                        right: float,
                        grad: tuple[float, float],
                        dot: tuple[float, float]) -> float:
+    """
+    Ternary Search for finding the minimum on interval. F : R -> R
+    :param func: Function for finding a minimum : R -> R
+    :param left: Left board of search
+    :param right: Right board of search
+    :param grad: Gradient of the fiven function, calculated on the previous step of gradient descent
+    :param dot: previous dot x_{k} (check docs for next_step)
+    :return: Founded min value
+    """
     if right - left < EPS_SEARCH:
         return (left + right) / 2
     a: float = (left * 2 + right) / 3
@@ -74,6 +95,15 @@ def ternary_search_min(func: typing.Callable[[tuple[float, float]], float],
 def dichotomy_search_min(func: typing.Callable[[tuple[float]], float], left: float, right: float,
                          grad: tuple[float, float],
                          dot: tuple[float, float]) -> float:
+    """
+    The dichotomy-search algorithm for finding a minimum value of a function : R -> R
+    :param func: Function for finding a minimum : R -> R
+    :param left: Left board of search
+    :param right: Right board of search
+    :param grad: Gradient of the fiven function, calculated on the previous step of gradient descent
+    :param dot: previous dot x_{k} (check docs for next_step)
+    :return: Founded min value
+    """
     if right - left < EPS_SEARCH:
         return (left + right) / 2
     median: float = (left + right) / 2
@@ -92,6 +122,15 @@ def next_step(prev_dot: tuple[float, float],
               regime: GRADIENT_REGIME,
               func: FUNCTION,
               learning_rate: float | None = None) -> tuple[float, float]:
+    """
+    The help function inside gradient algorithm. Used to step from x_{k} -> x_{k+1}.
+    :param prev_dot: x_{k}
+    :param gradient_vector: Gradient of function
+    :param regime: The type of gradient that shows how to find x_{k+1}
+    :param func: The function for finding minimum value
+    :param learning_rate: Optional. If regime is set to LEARNING_RATE, then it should not be None
+    :return: x_{k+1}
+    """
     if regime == GRADIENT_REGIME.CONSTANT_STEP:
         return prev_dot[0] - learning_rate * gradient_vector[0], prev_dot[1] - learning_rate * gradient_vector[1]
     elif regime == GRADIENT_REGIME.CHANGING_STEP_TERNARY:
@@ -104,8 +143,14 @@ def next_step(prev_dot: tuple[float, float],
         return prev_dot[0] - step * gradient_vector[0], prev_dot[1] - step * gradient_vector[1]
 
 
-def normalize(vector_1: tuple[float, float], vector_2: tuple[float, float]) -> float:
-    return math.sqrt((vector_1[0] - vector_2[0]) ** 2 + (vector_1[1] - vector_2[1]) ** 2)
+def normalize(dot_1: tuple[float, float], dot_2: tuple[float, float]) -> float:
+    """
+    Function to calculate the norm of two dots: X -> R
+    :param dot_1: First dot
+    :param dot_2: Second dot
+    :return: the calculated real value of norm
+    """
+    return math.sqrt((dot_1[0] - dot_2[0]) ** 2 + (dot_1[1] - dot_2[1]) ** 2)
 
 
 # Contract: return value : tuple[0] -> counted value; tuple[1] -> number of iterations
@@ -116,6 +161,17 @@ def gradient_descent(initial_dot: tuple[float, float],
                      func: FUNCTION,
                      regime: GRADIENT_REGIME,
                      learning_rate: float | None = None) -> tuple[float, int, [list[float], list[float], list[float]]]:
+    """
+    The gradient descent algorithm for any type of gradient method
+    :param initial_dot: Dot from which to start calculating gradient
+    :param by_dot_normalize: The STOP criterion by dot
+    :param by_func_normalize: The STOP criterion by function values
+    :param EPS: The deviation at which to stop calculating gradient
+    :param func: The function that will be used to find her minimum
+    :param regime: The regime used to calculate step of gradient
+    :param learning_rate: The constant step if the regime is LEARNING RATE, otherwise None
+    :return: The found min value, the number of iterations, the dots of gradient root
+    """
     prev_dot: tuple[float, float] = initial_dot
     prev_func_value: float = 10000000000
     iterations: int = 0
@@ -159,6 +215,17 @@ def fill_data(col_names: list[str],
               ax_fig: Axes,
               gradient_name: GRADIENT_NAME, regime: GRADIENT_REGIME,
               numbers_to_display: list[int]) -> None:
+    """
+    Fills the list of datas to put in the tables
+    :param col_names: Names of the columns in the tables
+    :param tables: List of tables
+    :param datas: List of data to plot ordered by the column names
+    :param ax_fig: Instance of the Axes figure for plotting
+    :param gradient_name: The type of gradient with string values
+    :param regime: The regime of the gradient with integer values
+    :param numbers_to_display: Number of rows in the table to display
+    :return: None
+    """
     RESULTS = []
     exp_cnt = 0
     for func in range(2):
@@ -226,6 +293,13 @@ def fill_data(col_names: list[str],
 
 
 def show_result(cols: list[str], tables: list[PrettyTable], datas: list[list[typing.Any]]):
+    """
+    Visualize tables with data for analysis
+    :param cols: The names of the columns in the tables
+    :param tables: The instances of the tables to put data
+    :param datas: The data to put in the tables ordered by the column names
+    :return: None
+    """
     number_of_cols: int = len(cols)
     for i in range(len(datas)):
         data: list[typing.Any] = datas[i]
