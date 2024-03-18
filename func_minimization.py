@@ -17,6 +17,7 @@ warnings.filterwarnings("ignore")
 class FUNCTION(enum.Enum):
     FUNC_1 = x ** 2 + (2 * x - 4 * y) ** 2 + (x - 5) ** 2
     FUNC_2 = x ** 2 + y ** 2 - x * y + 2 * x - 4 * y + 3
+    FUNC_3 = 100 * x ** 2 + y ** 2
 
 
 class GRADIENT_REGIME(enum.Enum):
@@ -31,8 +32,8 @@ class GRADIENT_NAME(enum.Enum):
     CHANGING_RATE_DICHOTOMY = "DICHOTOMY RATE METHOD"
 
 
-function: list[FUNCTION] = [FUNCTION.FUNC_1, FUNCTION.FUNC_2]
-GLOBAL_MIN: list[float] = [25 / 2, -1]
+function: list[FUNCTION] = [FUNCTION.FUNC_1, FUNCTION.FUNC_2, FUNCTION.FUNC_3]
+GLOBAL_MIN: list[float] = [25 / 2, -1, 0]
 
 
 def function_value(dot: tuple[float, float], func: FUNCTION) -> float:
@@ -46,6 +47,8 @@ def function_value(dot: tuple[float, float], func: FUNCTION) -> float:
         return dot[0] ** 2 + (2 * dot[0] - 4 * dot[1]) ** 2 + (dot[0] - 5) ** 2
     elif func == FUNCTION.FUNC_2:
         return dot[0] ** 2 + dot[1] ** 2 - dot[0] * dot[1] + 2 * dot[0] - 4 * dot[1] + 3
+    elif func == FUNCTION.FUNC_3:
+        return 100 * dot[0] ** 2 + dot[1] ** 2
 
 
 def gradient(dot: tuple[float, float], func: FUNCTION) -> tuple[float, float]:
@@ -59,7 +62,8 @@ def gradient(dot: tuple[float, float], func: FUNCTION) -> tuple[float, float]:
         return 2 * (6 * dot[0] - 8 * dot[1] - 5), -16 * (dot[0] - 2 * dot[1])
     elif func == FUNCTION.FUNC_2:
         return 2 * dot[0] - dot[1] + 2, -dot[0] + 2 * dot[1] - 4
-
+    elif func == FUNCTION.FUNC_3:
+        return 200 * dot[0], 2 * dot[1]
 
 EPS_SEARCH = 0.000001
 left_board = -5
@@ -76,7 +80,7 @@ def ternary_search_min(func: typing.Callable[[tuple[float, float]], float],
     :param func: Function for finding a minimum : R -> R
     :param left: Left board of search
     :param right: Right board of search
-    :param grad: Gradient of the fiven function, calculated on the previous step of gradient descent
+    :param grad: Gradient of the given function, calculated on the previous step of gradient descent
     :param dot: previous dot x_{k} (check docs for next_step)
     :return: Founded min value
     """
@@ -228,7 +232,7 @@ def fill_data(col_names: list[str],
     """
     RESULTS = []
     exp_cnt = 0
-    for func in range(2):
+    for func in range(3):
         RESULTS.append([])
         for i in range(NUMBER_OF_POINTS):
             for j in range(len(EPS)):
@@ -263,7 +267,7 @@ def fill_data(col_names: list[str],
                     RESULTS[func].append((None, None))
                 exp_cnt += 1
     experiment_number = 0
-    for func in range(2):
+    for func in range(3):
         tables.append(PrettyTable(col_names))
         datas.append([])
         for i in range(NUMBER_OF_POINTS):
