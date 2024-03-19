@@ -372,7 +372,7 @@ column_names_nelder_mead: list[str] = ['FUNCTION', 'GLOBAL_MIN', 'INIT_POINT', '
 tables_nelder_mead: list[PrettyTable] = []
 datas_nelder_mead: list[list[typing.Any]] = []
 
-for i in range(2):
+for i in range(3):
     tables_nelder_mead.append(PrettyTable(column_names_nelder_mead))
     datas_nelder_mead.append([])
     for j in range(len(INIT_POINTS)):
