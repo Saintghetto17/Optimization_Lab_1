@@ -20,9 +20,11 @@ class FUNCTION(enum.Enum):
     FUNC_1 = str(x ** 2 + (2 * x - 4 * y) ** 2 + (x - 5) ** 2)
     FUNC_2 = str(x ** 2 + y ** 2 - x * y + 2 * x - 4 * y + 3)
     FUNC_3 = str(100 * x ** 2 + y ** 2)
-    FUNC_4 = str(x ** 2 + (2 * x - 4 * y) ** 2 + (x - 5) ** 2) + " noisy"
-    FUNC_5 = ("-20 * exp(-0.2 * (sqrt(x ** 2 + y ** 2))) - exp(0.5 * (sin(2 * pi * x) + "
-              "sin(2 * pi * y))) + e + 20")
+    FUNC_4 = "мм"
+    # FUNC_4 = ("-20 * exp(-0.2 * (sqrt(x ** 2 + y ** 2))) - exp(0.5 * (sin(2 * pi * x) + "
+    # "sin(2 * pi * y))) + e + 20")
+    FUNC_5 = "noisy"
+    # FUNC_5 = str(x ** 2 + (2 * x - 4 * y) ** 2 + (x - 5) ** 2) + " noisy"
 
 
 class GRADIENT_REGIME(enum.Enum):
@@ -38,7 +40,7 @@ class GRADIENT_NAME(enum.Enum):
 
 
 function: list[FUNCTION] = [FUNCTION.FUNC_1, FUNCTION.FUNC_2, FUNCTION.FUNC_3, FUNCTION.FUNC_4, FUNCTION.FUNC_5]
-GLOBAL_MIN: list[float] = [25 / 2, -1, 0, 25 / 2, 0]
+GLOBAL_MIN: list[float] = [25 / 2, -1, 0, 0, 25 / 2]
 
 
 def function_value(dot: tuple[float, float], func: FUNCTION) -> float:
@@ -55,11 +57,11 @@ def function_value(dot: tuple[float, float], func: FUNCTION) -> float:
     elif func == FUNCTION.FUNC_3:
         return 100 * dot[0] ** 2 + dot[1] ** 2
     elif func == FUNCTION.FUNC_4:
-        return dot[0] ** 2 + (2 * dot[0] - 4 * dot[1]) ** 2 + (dot[0] - 5) ** 2
-    elif func == FUNCTION.FUNC_5:
-        return -20 * exp(-0.2 * (sqrt(0.5*(dot[0] ** 2 + dot[1] ** 2)))) - exp(
+        return -20 * exp(-0.2 * (sqrt(0.5 * (dot[0] ** 2 + dot[1] ** 2)))) - exp(
             0.5 * (sin(2 * math.pi * dot[0]) +
                    sin(2 * math.pi * dot[1]))) + math.e + 20
+    elif func == FUNCTION.FUNC_5:
+        return dot[0] ** 2 + (2 * dot[0] - 4 * dot[1]) ** 2 + (dot[0] - 5) ** 2 + random.randint(-1, 1)
 
 
 def gradient(dot: tuple[float, float], func: FUNCTION) -> tuple[float, float]:
@@ -80,14 +82,16 @@ def gradient(dot: tuple[float, float], func: FUNCTION) -> tuple[float, float]:
     elif func == FUNCTION.FUNC_5:
         if dot[0] == 0 and dot[1] == 0:
             return 0, 0
-        return ((exp(-sqrt(dot[0]**2 + dot[1]**2) / (5 * sqrt(2))) *
-              (pi * sqrt(dot[0]**2 + dot[1]**2) * exp((cos(2 * pi * dot[0]) + cos(2 * pi * dot[1])) / 2 +
-               sqrt(dot[0]**2 + dot[1]**2) / (5 * sqrt(2))) * sin(2 * pi * dot[0]) +
-               2**(3/2) * dot[0]) / sqrt(dot[0]**2 + dot[1]**2)),
-                (exp(-sqrt(dot[0]**2 + dot[1]**2) / (5 * sqrt(2))) *
-              (pi * sqrt(dot[0]**2 + dot[1]**2) * exp((cos(2 * pi * dot[0]) + cos(2 * pi * dot[1])) / 2 +
-               sqrt(dot[0]**2 + dot[1]**2) / (5 * sqrt(2))) * sin(2 * pi * dot[1]) +
-               2**(3/2) * dot[1]) / sqrt(dot[0]**2 + dot[1]**2)))
+        return ((exp(-sqrt(dot[0] ** 2 + dot[1] ** 2) / (5 * sqrt(2))) *
+                 (pi * sqrt(dot[0] ** 2 + dot[1] ** 2) * exp((cos(2 * pi * dot[0]) + cos(2 * pi * dot[1])) / 2 +
+                                                             sqrt(dot[0] ** 2 + dot[1] ** 2) / (5 * sqrt(2))) * sin(
+                     2 * pi * dot[0]) +
+                  2 ** (3 / 2) * dot[0]) / sqrt(dot[0] ** 2 + dot[1] ** 2)),
+                (exp(-sqrt(dot[0] ** 2 + dot[1] ** 2) / (5 * sqrt(2))) *
+                 (pi * sqrt(dot[0] ** 2 + dot[1] ** 2) * exp((cos(2 * pi * dot[0]) + cos(2 * pi * dot[1])) / 2 +
+                                                             sqrt(dot[0] ** 2 + dot[1] ** 2) / (5 * sqrt(2))) * sin(
+                     2 * pi * dot[1]) +
+                  2 ** (3 / 2) * dot[1]) / sqrt(dot[0] ** 2 + dot[1] ** 2)))
 
 
 EPS_SEARCH = 0.000001
@@ -256,8 +260,11 @@ def fill_data(col_names: list[str],
     :return: None
     """
     RESULTS = []
-    math.exp_cnt = 0
-    for func in range(5):
+    exp_cnt = 0
+    how_many_funcs = 5
+    if regime == GRADIENT_REGIME.CHANGING_STEP_DICHOTOMY:
+        how_many_funcs = 4
+    for func in range(how_many_funcs):
         RESULTS.append([])
         for i in range(NUMBER_OF_POINTS):
             for j in range(len(EPS)):
@@ -283,21 +290,21 @@ def fill_data(col_names: list[str],
                         buffer = gradient_descent(INIT_POINTS[i], False, True, EPS[j], function[func],
                                                   GRADIENT_REGIME.CHANGING_STEP_DICHOTOMY, learning_rate=None)
                     RESULTS[func].append(buffer[:2])
-                    if math.exp_cnt in numbers_to_display:
+                    if exp_cnt in numbers_to_display:
                         l, = ax_fig.plot(buffer[2][0], buffer[2][1], buffer[2][2], '-')
                         ax_fig.scatter(buffer[2][0], buffer[2][1], buffer[2][2])
                         legend_data[0].append(l)
-                        legend_data[1].append(gradient_name.value + " " + str(math.exp_cnt))
+                        legend_data[1].append(gradient_name.value + " " + str(exp_cnt))
                 except OverflowError:
                     RESULTS[func].append((None, None))
-                math.exp_cnt += 1
-    math.experiment_number = 0
-    for func in range(5):
+                exp_cnt += 1
+    experiment_number = 0
+    for func in range(how_many_funcs):
         tables.append(PrettyTable(col_names))
         datas.append([])
         for i in range(NUMBER_OF_POINTS):
             for j in range(len(EPS)):
-                datas[func].append(math.experiment_number)
+                datas[func].append(experiment_number)
                 datas[func].append(function[func].value)
                 datas[func].append(GLOBAL_MIN[func])
                 datas[func].append(INIT_POINTS[i])
@@ -318,7 +325,7 @@ def fill_data(col_names: list[str],
                     else:
                         datas[func].append(False)
                         datas[func].append(True)
-                math.experiment_number += 1
+                experiment_number += 1
 
 
 def show_result(cols: list[str], tables: list[PrettyTable], datas: list[list[typing.Any]]):
@@ -373,7 +380,7 @@ column_names_learning_rate: list[str] = ['№', 'FUNCTION', 'GLOBAL_MIN', 'INIT_
 tables_learning_rate: list[PrettyTable] = []
 datas_learning_rate: list[list[typing.Any]] = []
 fill_data(column_names_learning_rate, tables_learning_rate, datas_learning_rate,
-          ax_fms, GRADIENT_NAME.LEARNING_RATE, GRADIENT_REGIME.CONSTANT_STEP, [7, 9])
+          ax_fms, GRADIENT_NAME.LEARNING_RATE, GRADIENT_REGIME.CONSTANT_STEP, [7, 9, 28, 35])
 show_result(column_names_learning_rate, tables_learning_rate, datas_learning_rate)
 
 # TABLE FOR TERNARY RATE METHOD
