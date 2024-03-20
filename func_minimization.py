@@ -6,8 +6,10 @@ from prettytable import PrettyTable
 from scipy import optimize
 from sympy.abc import x, y
 import enum
+from math import sin, cos, pi, exp, sqrt
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 
 import warnings
 
@@ -15,9 +17,12 @@ warnings.filterwarnings("ignore")
 
 
 class FUNCTION(enum.Enum):
-    FUNC_1 = x ** 2 + (2 * x - 4 * y) ** 2 + (x - 5) ** 2
-    FUNC_2 = x ** 2 + y ** 2 - x * y + 2 * x - 4 * y + 3
-    FUNC_3 = 100 * x ** 2 + y ** 2
+    FUNC_1 = str(x ** 2 + (2 * x - 4 * y) ** 2 + (x - 5) ** 2)
+    FUNC_2 = str(x ** 2 + y ** 2 - x * y + 2 * x - 4 * y + 3)
+    FUNC_3 = str(100 * x ** 2 + y ** 2)
+    FUNC_4 = str(x ** 2 + (2 * x - 4 * y) ** 2 + (x - 5) ** 2) + " noisy"
+    FUNC_5 = ("-20 * exp(-0.2 * (sqrt(x ** 2 + y ** 2))) - exp(0.5 * (sin(2 * pi * x) + "
+              "sin(2 * pi * y))) + e + 20")
 
 
 class GRADIENT_REGIME(enum.Enum):
@@ -32,8 +37,8 @@ class GRADIENT_NAME(enum.Enum):
     CHANGING_RATE_DICHOTOMY = "DICHOTOMY RATE METHOD"
 
 
-function: list[FUNCTION] = [FUNCTION.FUNC_1, FUNCTION.FUNC_2, FUNCTION.FUNC_3]
-GLOBAL_MIN: list[float] = [25 / 2, -1, 0]
+function: list[FUNCTION] = [FUNCTION.FUNC_1, FUNCTION.FUNC_2, FUNCTION.FUNC_3, FUNCTION.FUNC_4, FUNCTION.FUNC_5]
+GLOBAL_MIN: list[float] = [25 / 2, -1, 0, 25 / 2, 0]
 
 
 def function_value(dot: tuple[float, float], func: FUNCTION) -> float:
@@ -49,6 +54,12 @@ def function_value(dot: tuple[float, float], func: FUNCTION) -> float:
         return dot[0] ** 2 + dot[1] ** 2 - dot[0] * dot[1] + 2 * dot[0] - 4 * dot[1] + 3
     elif func == FUNCTION.FUNC_3:
         return 100 * dot[0] ** 2 + dot[1] ** 2
+    elif func == FUNCTION.FUNC_4:
+        return dot[0] ** 2 + (2 * dot[0] - 4 * dot[1]) ** 2 + (dot[0] - 5) ** 2
+    elif func == FUNCTION.FUNC_5:
+        return -20 * exp(-0.2 * (sqrt(0.5*(dot[0] ** 2 + dot[1] ** 2)))) - exp(
+            0.5 * (sin(2 * math.pi * dot[0]) +
+                   sin(2 * math.pi * dot[1]))) + math.e + 20
 
 
 def gradient(dot: tuple[float, float], func: FUNCTION) -> tuple[float, float]:
@@ -64,6 +75,20 @@ def gradient(dot: tuple[float, float], func: FUNCTION) -> tuple[float, float]:
         return 2 * dot[0] - dot[1] + 2, -dot[0] + 2 * dot[1] - 4
     elif func == FUNCTION.FUNC_3:
         return 200 * dot[0], 2 * dot[1]
+    elif func == FUNCTION.FUNC_4:
+        return 2 * (6 * dot[0] - 8 * dot[1] - 5), -16 * (dot[0] - 2 * dot[1])
+    elif func == FUNCTION.FUNC_5:
+        if dot[0] == 0 and dot[1] == 0:
+            return 0, 0
+        return ((exp(-sqrt(dot[0]**2 + dot[1]**2) / (5 * sqrt(2))) *
+              (pi * sqrt(dot[0]**2 + dot[1]**2) * exp((cos(2 * pi * dot[0]) + cos(2 * pi * dot[1])) / 2 +
+               sqrt(dot[0]**2 + dot[1]**2) / (5 * sqrt(2))) * sin(2 * pi * dot[0]) +
+               2**(3/2) * dot[0]) / sqrt(dot[0]**2 + dot[1]**2)),
+                (exp(-sqrt(dot[0]**2 + dot[1]**2) / (5 * sqrt(2))) *
+              (pi * sqrt(dot[0]**2 + dot[1]**2) * exp((cos(2 * pi * dot[0]) + cos(2 * pi * dot[1])) / 2 +
+               sqrt(dot[0]**2 + dot[1]**2) / (5 * sqrt(2))) * sin(2 * pi * dot[1]) +
+               2**(3/2) * dot[1]) / sqrt(dot[0]**2 + dot[1]**2)))
+
 
 EPS_SEARCH = 0.000001
 left_board = -5
@@ -154,7 +179,7 @@ def normalize(dot_1: tuple[float, float], dot_2: tuple[float, float]) -> float:
     :param dot_2: Second dot
     :return: the calculated real value of norm
     """
-    return math.sqrt((dot_1[0] - dot_2[0]) ** 2 + (dot_1[1] - dot_2[1]) ** 2)
+    return sqrt((dot_1[0] - dot_2[0]) ** 2 + (dot_1[1] - dot_2[1]) ** 2)
 
 
 # Contract: return value : tuple[0] -> counted value; tuple[1] -> number of iterations
@@ -231,8 +256,8 @@ def fill_data(col_names: list[str],
     :return: None
     """
     RESULTS = []
-    exp_cnt = 0
-    for func in range(3):
+    math.exp_cnt = 0
+    for func in range(5):
         RESULTS.append([])
         for i in range(NUMBER_OF_POINTS):
             for j in range(len(EPS)):
@@ -258,21 +283,21 @@ def fill_data(col_names: list[str],
                         buffer = gradient_descent(INIT_POINTS[i], False, True, EPS[j], function[func],
                                                   GRADIENT_REGIME.CHANGING_STEP_DICHOTOMY, learning_rate=None)
                     RESULTS[func].append(buffer[:2])
-                    if exp_cnt in numbers_to_display:
+                    if math.exp_cnt in numbers_to_display:
                         l, = ax_fig.plot(buffer[2][0], buffer[2][1], buffer[2][2], '-')
                         ax_fig.scatter(buffer[2][0], buffer[2][1], buffer[2][2])
                         legend_data[0].append(l)
-                        legend_data[1].append(gradient_name.value + " " + str(exp_cnt))
+                        legend_data[1].append(gradient_name.value + " " + str(math.exp_cnt))
                 except OverflowError:
                     RESULTS[func].append((None, None))
-                exp_cnt += 1
-    experiment_number = 0
-    for func in range(3):
+                math.exp_cnt += 1
+    math.experiment_number = 0
+    for func in range(5):
         tables.append(PrettyTable(col_names))
         datas.append([])
         for i in range(NUMBER_OF_POINTS):
             for j in range(len(EPS)):
-                datas[func].append(experiment_number)
+                datas[func].append(math.experiment_number)
                 datas[func].append(function[func].value)
                 datas[func].append(GLOBAL_MIN[func])
                 datas[func].append(INIT_POINTS[i])
@@ -293,7 +318,7 @@ def fill_data(col_names: list[str],
                     else:
                         datas[func].append(False)
                         datas[func].append(True)
-                experiment_number += 1
+                math.experiment_number += 1
 
 
 def show_result(cols: list[str], tables: list[PrettyTable], datas: list[list[typing.Any]]):
@@ -372,7 +397,7 @@ column_names_nelder_mead: list[str] = ['FUNCTION', 'GLOBAL_MIN', 'INIT_POINT', '
 tables_nelder_mead: list[PrettyTable] = []
 datas_nelder_mead: list[list[typing.Any]] = []
 
-for i in range(3):
+for i in range(4):
     tables_nelder_mead.append(PrettyTable(column_names_nelder_mead))
     datas_nelder_mead.append([])
     for j in range(len(INIT_POINTS)):
