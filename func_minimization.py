@@ -240,12 +240,16 @@ for i in range(NUMBER_OF_POINTS):
     INIT_POINTS.append((i, i))
 
 legend_data = [[], []]
+legend_data2D1 = [[], []]
+legend_data2D2 = [[], []]
 
 
 def fill_data(col_names: list[str],
               tables: list[PrettyTable],
               datas: list[list[typing.Any]],
               ax_fig: Axes,
+              ax_fig_2D1: Axes,
+              ax_fig_2D2: Axes,
               gradient_name: GRADIENT_NAME, regime: GRADIENT_REGIME,
               numbers_to_display: list[int]) -> None:
     """
@@ -254,6 +258,8 @@ def fill_data(col_names: list[str],
     :param tables: List of tables
     :param datas: List of data to plot ordered by the column names
     :param ax_fig: Instance of the Axes figure for plotting
+    :param ax_fig_2D1: Instance of the Axes figure for plotting on level_line_graph1
+    :param ax_fig_2D2: Instance of the Axes figure for plotting on level_line_graph2
     :param gradient_name: The type of gradient with string values
     :param regime: The regime of the gradient with integer values
     :param numbers_to_display: Number of rows in the table to display
@@ -295,6 +301,19 @@ def fill_data(col_names: list[str],
                         ax_fig.scatter(buffer[2][0], buffer[2][1], buffer[2][2])
                         legend_data[0].append(l)
                         legend_data[1].append(gradient_name.value + " " + str(exp_cnt))
+                        if ax_fig_2D1 is not None and ax_fig_2D2 is not None:
+                            if func == 0:
+                                points_x = buffer[2][0]
+                                points_y = buffer[2][1]
+                                l2d, = ax_fig_2D1.plot(points_x, points_y)
+                                legend_data2D1[0].append(l2d)
+                                legend_data2D1[1].append(gradient_name.value + " " + str(exp_cnt))
+                            if func == 1:
+                                points_x = buffer[2][0]
+                                points_y = buffer[2][1]
+                                l2d, = ax_fig_2D2.plot(points_x, points_y)
+                                legend_data2D2[0].append(l2d)
+                                legend_data2D2[1].append(gradient_name.value + " " + str(exp_cnt))
                 except OverflowError:
                     RESULTS[func].append((None, None))
                 exp_cnt += 1
@@ -352,7 +371,7 @@ ax_fms = figure_method_steps.add_subplot(projection='3d')
 
 # VISUALIZATION OF OUR GRAPHICS
 
-x = y = np.arange(-3, 3, 0.05)
+x = y = np.arange(-3, 3, 0.001)
 X, Y = np.meshgrid(x, y)
 Z1 = np.array(function_value((np.ravel(X), np.ravel(Y)), FUNCTION.FUNC_1)).reshape(X.shape)
 Z2 = np.array(function_value((np.ravel(X), np.ravel(Y)), FUNCTION.FUNC_2)).reshape(X.shape)
@@ -362,13 +381,16 @@ figure = plt.figure(figsize=(14, 10))
 ax1 = figure.add_subplot(2, 2, 1, projection='3d')
 ax1.plot_surface(X, Y, Z1)
 ax2 = figure.add_subplot(2, 2, 2)
-cs1 = ax2.contour(X, Y, Z1, level=20)
+levels_list1 = [12.5, 13, 14, 15, 16, 17, 18, 19, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+cs1 = ax2.contour(X, Y, Z1, levels=levels_list1)
 cs1.clabel()
 
 ax3 = figure.add_subplot(2, 2, 3, projection='3d')
 ax3.plot_surface(X, Y, Z2)
 ax4 = figure.add_subplot(2, 2, 4)
-cs2 = ax4.contour(X, Y, Z2, level=20)
+levels_list2 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+cs2 = ax4.contour(X, Y, Z2, levels=levels_list2)
+
 cs2.clabel()
 
 # TABLE FOR LEARNING RATE METHOD
@@ -380,7 +402,7 @@ column_names_learning_rate: list[str] = ['№', 'FUNCTION', 'GLOBAL_MIN', 'INIT_
 tables_learning_rate: list[PrettyTable] = []
 datas_learning_rate: list[list[typing.Any]] = []
 fill_data(column_names_learning_rate, tables_learning_rate, datas_learning_rate,
-          ax_fms, GRADIENT_NAME.LEARNING_RATE, GRADIENT_REGIME.CONSTANT_STEP, [7, 9, 28, 35])
+          ax_fms, ax2, ax4, GRADIENT_NAME.LEARNING_RATE, GRADIENT_REGIME.CONSTANT_STEP, [1, 10])
 show_result(column_names_learning_rate, tables_learning_rate, datas_learning_rate)
 
 # TABLE FOR TERNARY RATE METHOD
@@ -393,7 +415,7 @@ column_names_ternary_rate: list[str] = ['№', 'FUNCTION', 'GLOBAL_MIN', 'INIT_P
 tables_ternary_rate: list[PrettyTable] = []
 datas_ternary_rate: list[list[typing.Any]] = []
 fill_data(column_names_ternary_rate, tables_ternary_rate, datas_ternary_rate,
-          ax_fms, GRADIENT_NAME.CHANGING_RATE_TERNARY, GRADIENT_REGIME.CHANGING_STEP_TERNARY, [1, 5, 17])
+          ax_fms, ax2, ax4, GRADIENT_NAME.CHANGING_RATE_TERNARY, GRADIENT_REGIME.CHANGING_STEP_TERNARY, [1, 10])
 show_result(column_names_ternary_rate, tables_ternary_rate, datas_ternary_rate)
 
 # TABLE FOR NELDER-MEAD:
@@ -427,8 +449,10 @@ column_names_dichotomy_rate: list[str] = ['№', 'FUNCTION', 'GLOBAL_MIN', 'INIT
 tables_dichotomy_rate: list[PrettyTable] = []
 datas_dichotomy_rate: list[list[typing.Any]] = []
 fill_data(column_names_dichotomy_rate, tables_dichotomy_rate, datas_dichotomy_rate,
-          ax_fms, GRADIENT_NAME.CHANGING_RATE_DICHOTOMY, GRADIENT_REGIME.CHANGING_STEP_DICHOTOMY, [2, 12, 15])
+          ax_fms, None, None, GRADIENT_NAME.CHANGING_RATE_DICHOTOMY, GRADIENT_REGIME.CHANGING_STEP_DICHOTOMY, [])
 show_result(column_names_dichotomy_rate, tables_dichotomy_rate, datas_dichotomy_rate)
 
 figure_method_steps.legend(legend_data[0], legend_data[1], loc='upper right', shadow=True)
+ax2.legend(legend_data2D1[0], legend_data2D1[1], loc='lower left', shadow=True)
+ax4.legend(legend_data2D2[0], legend_data2D2[1], loc='lower left', shadow=True)
 plt.show()
